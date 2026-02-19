@@ -483,5 +483,3 @@ A task is **DONE** when:
 | **React Pages** | 7 |
 
 ---
-
-**🇨🇴 ¡Vamos! You've got 18 days to build something amazing! 🚀**
