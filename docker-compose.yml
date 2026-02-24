@@ -1,0 +1,56 @@
+version: '3.8'
+
+services:
+  # Flask API
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: colombian-api
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=${FLASK_ENV:-development}
+      - FLASK_DEBUG=${FLASK_DEBUG:-1}
+      - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-jwt-secret}
+      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-colombian_user}:${MYSQL_PASSWORD:-colombian_pass}@db:3306/${MYSQL_DATABASE:-colombian_recipes}
+      - CLAUDE_API_KEY=${CLAUDE_API_KEY:-}
+    volumes:
+      - ./api:/app
+    depends_on:
+      db:
+        condition: service_healthy
+    restart: unless-stopped
+    networks:
+      - colombian-network
+
+  # MySQL Database
+  db:
+    image: mysql:8.0
+    container_name: colombian-db
+    ports:
+      - "3306:3306"
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_DATABASE=${MYSQL_DATABASE:-colombian_recipes}
+      - MYSQL_USER=${MYSQL_USER:-colombian_user}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-colombian_pass}
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./api/init.sql:/docker-entrypoint-initdb.d/init.sql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+    networks:
+      - colombian-network
+
+volumes:
+  mysql_data:
+
+networks:
+  colombian-network:
+    driver: bridge
