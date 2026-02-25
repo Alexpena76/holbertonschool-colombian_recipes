@@ -193,11 +193,3 @@ See [docs/deployment.md](docs/deployment.md) for AWS deployment instructions.
 
 - Holberton School
 - February 2025
-
-## License
-
-MIT License - see [LICENSE](LICENSE) for details.
-
----
-
-Made with ❤️ and 🇨🇴 Colombian coffee
