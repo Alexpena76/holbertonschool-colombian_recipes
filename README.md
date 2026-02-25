@@ -5,7 +5,6 @@ A REST API for authentic Colombian recipes with an AI-powered cooking assistant.
 ![Python](https://img.shields.io/badge/Python-3.11-blue)
 ![Flask](https://img.shields.io/badge/Flask-3.0-green)
 ![MySQL](https://img.shields.io/badge/MySQL-8.0-orange)
-![License](https://img.shields.io/badge/License-MIT-yellow)
 
 ## Features
 
