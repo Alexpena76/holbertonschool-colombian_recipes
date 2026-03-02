@@ -1,30 +1,43 @@
 """
 Colombian Recipe API - Application Factory
 """
-from flask import Flask
+from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_sqlalchemy import SQLAlchemy
 from flask_jwt_extended import JWTManager
 
-# Initialize extensions
 db = SQLAlchemy()
 jwt = JWTManager()
 
+# Store for revoked tokens
+revoked_tokens = set()
 
 def create_app(config_name='development'):
-    """Create and configure the Flask application."""
     app = Flask(__name__)
     
-    # Load configuration
     from app.config import config
     app.config.from_object(config[config_name])
     
-    # Initialize extensions
     db.init_app(app)
     jwt.init_app(app)
     CORS(app)
     
-    # Register blueprints
+    @jwt.expired_token_loader
+    def expired_token_callback(jwt_header, jwt_payload):
+        return jsonify({'success': False, 'error': {'code': 'TOKEN_EXPIRED', 'message': 'Token has expired'}}), 401
+    
+    @jwt.invalid_token_loader
+    def invalid_token_callback(error):
+        return jsonify({'success': False, 'error': {'code': 'INVALID_TOKEN', 'message': 'Invalid token'}}), 401
+    
+    @jwt.unauthorized_loader
+    def missing_token_callback(error):
+        return jsonify({'success': False, 'error': {'code': 'MISSING_TOKEN', 'message': 'Authorization token required'}}), 401
+    
+    @jwt.token_in_blocklist_loader
+    def check_if_token_revoked(jwt_header, jwt_payload):
+        return False
+    
     from app.routes.health import health_bp
     from app.routes.auth import auth_bp
     from app.routes.recipes import recipes_bp
@@ -39,32 +52,7 @@ def create_app(config_name='development'):
     app.register_blueprint(assistant_bp, url_prefix='/api/v1/assistant')
     app.register_blueprint(conversations_bp, url_prefix='/api/v1/conversations')
     
-    # Create database tables
     with app.app_context():
         db.create_all()
     
-    # Register error handlers
-    register_error_handlers(app)
-    
     return app
-
-
-def register_error_handlers(app):
-    """Register error handlers for the application."""
-    from app.services.response_service import error_response
-    
-    @app.errorhandler(400)
-    def bad_request(error):
-        return error_response('BAD_REQUEST', 'Bad request', 400)
-    
-    @app.errorhandler(401)
-    def unauthorized(error):
-        return error_response('UNAUTHORIZED', 'Authentication required', 401)
-    
-    @app.errorhandler(404)
-    def not_found(error):
-        return error_response('NOT_FOUND', 'Resource not found', 404)
-    
-    @app.errorhandler(500)
-    def internal_error(error):
-        return error_response('INTERNAL_ERROR', 'Internal server error', 500)

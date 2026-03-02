@@ -6,21 +6,32 @@ from app import db
 
 
 class Conversation(db.Model):
-    """Conversation model for AI chat sessions."""
+    """AI conversation model - stores chat sessions"""
+    
     __tablename__ = 'conversations'
     
-    id = db.Column(db.Integer, primary_key=True)
-    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False, index=True)
-    recipe_id = db.Column(db.String(50), db.ForeignKey('recipes.id', ondelete='SET NULL'), index=True)
+    id = db.Column(db.Integer, primary_key=True, autoincrement=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), 
+                        nullable=False, index=True)
+    recipe_id = db.Column(db.String(50), db.ForeignKey('recipes.id', ondelete='SET NULL'),
+                          index=True, nullable=True)
     title = db.Column(db.String(255))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Relationships
-    messages = db.relationship('Message', backref='conversation', lazy='dynamic', cascade='all, delete-orphan', order_by='Message.created_at')
+    messages = db.relationship('Message', backref='conversation', lazy='dynamic',
+                               cascade='all, delete-orphan', order_by='Message.created_at')
+    recipe = db.relationship('Recipe', backref='conversations')
+    user = db.relationship('User', backref='conversations')
+    
+    def __init__(self, user_id, recipe_id=None, title=None):
+        self.user_id = user_id
+        self.recipe_id = recipe_id
+        self.title = title
     
     def to_dict(self, include_messages=False):
-        """Convert conversation to dictionary."""
+        """Convert to dictionary"""
         data = {
             'id': self.id,
             'user_id': self.user_id,
@@ -33,7 +44,7 @@ class Conversation(db.Model):
         }
         
         if include_messages:
-            data['messages'] = [msg.to_dict() for msg in self.messages]
+            data['messages'] = [msg.to_dict() for msg in self.messages.all()]
         
         return data
     
