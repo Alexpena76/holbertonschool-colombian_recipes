@@ -20,7 +20,7 @@ def create_app(config_name='development'):
     
     db.init_app(app)
     jwt.init_app(app)
-    CORS(app)
+    CORS(app, resources={r"/api/*": {"origins": "*", "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"], "allow_headers": ["Content-Type", "Authorization"]}})
     
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):
