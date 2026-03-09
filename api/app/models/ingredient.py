@@ -22,7 +22,7 @@ class Ingredient(db.Model):
             'id': self.id,
             'name': self.name,
             'name_es': self.name_es,
-            'amount': float(self.amount * scale) if self.amount else None,
+            'amount': float(self.amount) * scale if self.amount else None,
             'unit': self.unit,
             'order_index': self.order_index
         }

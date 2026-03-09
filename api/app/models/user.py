@@ -16,9 +16,6 @@ class User(db.Model):
     name = db.Column(db.String(100))
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
-    # Relationships
-    conversations = db.relationship('Conversation', backref='user', lazy='dynamic', cascade='all, delete-orphan')
-    
     def __init__(self, email, password, name=None):
         self.email = email
         self.set_password(password)

@@ -26,7 +26,6 @@ class Recipe(db.Model):
     # Relationships
     ingredients = db.relationship('Ingredient', backref='recipe', lazy='dynamic', cascade='all, delete-orphan', order_by='Ingredient.order_index')
     steps = db.relationship('Step', backref='recipe', lazy='dynamic', cascade='all, delete-orphan', order_by='Step.step_number')
-    conversations = db.relationship('Conversation', backref='recipe', lazy='dynamic')
     
     def to_dict(self, include_details=False):
         """Convert recipe to dictionary."""
@@ -51,6 +50,36 @@ class Recipe(db.Model):
             data['created_at'] = self.created_at.isoformat() if self.created_at else None
         
         return data
+    
+    def to_context_string(self):
+        """Convert recipe to context string for AI assistant"""
+        context = f"Recipe: {self.name}\n"
+        
+        if self.description:
+            context += f"Description: {self.description}\n"
+        
+        if hasattr(self, 'prep_time') and self.prep_time:
+            context += f"Prep time: {self.prep_time} minutes\n"
+        
+        if hasattr(self, 'cook_time') and self.cook_time:
+            context += f"Cook time: {self.cook_time} minutes\n"
+        
+        if hasattr(self, 'servings') and self.servings:
+            context += f"Servings: {self.servings}\n"
+        
+        # Add ingredients
+        if self.ingredients:
+            context += "\nIngredients:\n"
+            for ing in self.ingredients:
+                context += f"- {ing.amount} {ing.unit} {ing.name}\n"
+        
+        # Add steps
+        if self.steps:
+            context += "\nSteps:\n"
+            for step in self.steps:
+                context += f"{step.step_number}. {step.instruction}\n"
+        
+        return context
     
     def __repr__(self):
         return f'<Recipe {self.id}>'

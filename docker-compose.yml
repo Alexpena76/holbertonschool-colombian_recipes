@@ -1,6 +1,20 @@
 version: '3.8'
 
 services:
+  # React Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: colombian-frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - api
+    restart: unless-stopped
+    networks:
+      - colombian-network
+
   # Flask API
   api:
     build:
@@ -14,8 +28,11 @@ services:
       - FLASK_DEBUG=${FLASK_DEBUG:-1}
       - SECRET_KEY=${SECRET_KEY:-dev-secret-key}
       - JWT_SECRET_KEY=${JWT_SECRET_KEY:-dev-jwt-secret}
-      - DATABASE_URL=mysql+pymysql://${MYSQL_USER:-colombian_user}:${MYSQL_PASSWORD:-colombian_pass}@db:3306/${MYSQL_DATABASE:-colombian_recipes}
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY:-}
+      - DATABASE_URL=mysql+pymysql://root:${MYSQL_ROOT_PASSWORD:-password}@db:3306/${MYSQL_DATABASE:-colombian_recipes}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
     volumes:
       - ./api:/app
     depends_on:
@@ -32,10 +49,8 @@ services:
     ports:
       - "3306:3306"
     environment:
-      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-rootpassword}
+      - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD:-password}
       - MYSQL_DATABASE=${MYSQL_DATABASE:-colombian_recipes}
-      - MYSQL_USER=${MYSQL_USER:-colombian_user}
-      - MYSQL_PASSWORD=${MYSQL_PASSWORD:-colombian_pass}
     volumes:
       - mysql_data:/var/lib/mysql
       - ./api/init.sql:/docker-entrypoint-initdb.d/init.sql

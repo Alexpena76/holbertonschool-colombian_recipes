@@ -1,0 +1,52 @@
+version: '3.8'
+
+# Production Docker Compose - Uses external RDS database
+# Run with: docker-compose -f docker-compose.prod.yml up -d
+
+services:
+  # React Frontend (served via Nginx)
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: colombian-frontend
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+    restart: always
+    networks:
+      - colombian-network
+
+  # Flask API
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: colombian-api
+    ports:
+      - "5000:5000"
+    environment:
+      - FLASK_ENV=production
+      - FLASK_DEBUG=0
+      - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
+      - DATABASE_URL=${DATABASE_URL}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY:-}
+      - GROQ_API_KEY=${GROQ_API_KEY:-}
+      - CORS_ORIGINS=${CORS_ORIGINS:-*}
+    restart: always
+    networks:
+      - colombian-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+networks:
+  colombian-network:
+    driver: bridge
