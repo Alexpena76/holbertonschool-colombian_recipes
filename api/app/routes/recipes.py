@@ -10,7 +10,6 @@ recipes_bp = Blueprint('recipes', __name__)
 
 
 @recipes_bp.route('', methods=['GET'])
-@jwt_required()
 def get_recipes():
     """Get all recipes with optional filtering and pagination."""
     page = request.args.get('page', 1, type=int)
@@ -32,7 +31,6 @@ def get_recipes():
 
 
 @recipes_bp.route('/<string:recipe_id>', methods=['GET'])
-@jwt_required()
 def get_recipe(recipe_id):
     """Get recipe by ID with full details."""
     recipe = RecipeService.get_by_id(recipe_id)
@@ -44,7 +42,6 @@ def get_recipe(recipe_id):
 
 
 @recipes_bp.route('/search', methods=['GET'])
-@jwt_required()
 def search_recipes():
     """Search recipes by name or ingredient."""
     query_string = request.args.get('q', '').strip()
