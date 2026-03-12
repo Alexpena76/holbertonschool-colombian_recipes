@@ -10,7 +10,7 @@ const RecipeDetailPage = () => {
   const [loading, setLoading] = useState(true);
   const [servings, setServings] = useState(4);
   const [originalServings, setOriginalServings] = useState(4);
-  const { t } = useLanguage();
+  const { t, language } = useLanguage();
 
   useEffect(() => {
     const fetchRecipe = async () => {
@@ -93,7 +93,7 @@ const RecipeDetailPage = () => {
           </div>
           <div className="p-6">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{recipe.name}</h1>
-            <p className="text-gray-600 mb-4">{recipe.description}</p>
+            <p className="text-gray-600 mb-4">{language === 'es' ? recipe.description_es || recipe.description : recipe.description}</p>
             
             {/* Recipe Meta */}
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-t border-b border-gray-200">
@@ -171,7 +171,7 @@ const RecipeDetailPage = () => {
                     <span className="flex-shrink-0 w-8 h-8 bg-blue-800 text-white rounded-full flex items-center justify-center font-bold mr-4">
                       {step.step_number}
                     </span>
-                    <p className="text-gray-700 pt-1">{step.instruction}</p>
+                    <p className="text-gray-700 pt-1">{language === 'es' ? step.instruction_es || step.instruction : step.instruction}</p>
                   </li>
                 ))}
               </ol>
