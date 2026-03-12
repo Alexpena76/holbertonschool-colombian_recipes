@@ -80,8 +80,16 @@ const RecipeDetailPage = () => {
 
         {/* Recipe Header */}
         <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
-          <div className="h-64 bg-gradient-to-br from-yellow-400 to-red-500 flex items-center justify-center">
-            <ChefHat className="h-32 w-32 text-white opacity-80" />
+          <div className="h-64 bg-gradient-to-br from-yellow-400 to-red-500 flex items-center justify-center overflow-hidden">
+            {recipe.image_url ? (
+              <img 
+                src={recipe.image_url} 
+                alt={recipe.name}
+                className="w-full h-full object-cover"
+              />
+            ) : (
+              <ChefHat className="h-32 w-32 text-white opacity-80" />
+            )}
           </div>
           <div className="p-6">
             <h1 className="text-3xl font-bold text-gray-900 mb-2">{recipe.name}</h1>
@@ -92,12 +100,12 @@ const RecipeDetailPage = () => {
               <div className="text-center">
                 <Clock className="h-6 w-6 mx-auto text-blue-800 mb-1" />
                 <p className="text-sm text-gray-500">{t('recipeDetail.prepTime')}</p>
-                <p className="font-semibold">{recipe.prep_time} {t('recipeDetail.minutes')}</p>
+                <p className="font-semibold">{recipe.prep_time_minutes} {t('recipeDetail.minutes')}</p>
               </div>
               <div className="text-center">
                 <Clock className="h-6 w-6 mx-auto text-blue-800 mb-1" />
                 <p className="text-sm text-gray-500">{t('recipeDetail.cookTime')}</p>
-                <p className="font-semibold">{recipe.cook_time} {t('recipeDetail.minutes')}</p>
+                <p className="font-semibold">{recipe.cook_time_minutes} {t('recipeDetail.minutes')}</p>
               </div>
               <div className="text-center">
                 <Users className="h-6 w-6 mx-auto text-blue-800 mb-1" />
@@ -158,12 +166,12 @@ const RecipeDetailPage = () => {
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h2 className="text-xl font-bold text-gray-900 mb-4">{t('recipeDetail.instructions')}</h2>
               <ol className="space-y-4">
-                {recipe.instructions?.map((instruction, index) => (
+                {recipe.steps?.map((step, index) => (
                   <li key={index} className="flex">
                     <span className="flex-shrink-0 w-8 h-8 bg-blue-800 text-white rounded-full flex items-center justify-center font-bold mr-4">
-                      {instruction.step_number}
+                      {step.step_number}
                     </span>
-                    <p className="text-gray-700 pt-1">{instruction.description}</p>
+                    <p className="text-gray-700 pt-1">{step.instruction}</p>
                   </li>
                 ))}
               </ol>

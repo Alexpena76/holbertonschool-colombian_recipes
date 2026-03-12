@@ -79,8 +79,16 @@ const HomePage = () => {
                   key={recipe.id}
                   className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition transform hover:-translate-y-1"
                 >
-                  <div className="h-48 bg-gradient-to-br from-yellow-400 to-red-500 flex items-center justify-center">
-                    <ChefHat className="h-20 w-20 text-white opacity-80" />
+                  <div className="h-48 bg-gradient-to-br from-yellow-400 to-red-500 flex items-center justify-center overflow-hidden">
+                    {recipe.image_url ? (
+                      <img 
+                        src={recipe.image_url} 
+                        alt={recipe.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <ChefHat className="h-20 w-20 text-white opacity-80" />
+                    )}
                   </div>
                   <div className="p-6">
                     <h3 className="text-xl font-bold text-gray-900 mb-2">
@@ -92,7 +100,7 @@ const HomePage = () => {
                     <div className="flex items-center justify-between text-sm text-gray-500 mb-4">
                       <div className="flex items-center gap-1">
                         <Clock className="h-4 w-4" />
-                        <span>{recipe.prep_time + recipe.cook_time} {t('recipes.minutes')}</span>
+                        <span>{(recipe.prep_time_minutes || 0) + (recipe.cook_time_minutes || 0)} {t('recipes.minutes')}</span>
                       </div>
                       <div className="flex items-center gap-1">
                         <Users className="h-4 w-4" />
