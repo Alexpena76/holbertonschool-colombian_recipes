@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Mail, Lock, ChefHat } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { ChefHat, Mail, Lock, AlertCircle } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
-export default function LoginPage() {
+const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  
   const { login } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
 
   const handleSubmit = async (e) => {
@@ -19,105 +20,96 @@ export default function LoginPage() {
 
     try {
       await login(email, password);
-      navigate('/recipes');
+      navigate('/');
     } catch (err) {
-      setError(err.response?.data?.error?.message || 'Login failed. Please try again.');
+      setError(t('login.error'));
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
-        {/* Header */}
-        <div className="text-center">
-          <ChefHat className="mx-auto h-16 w-16 text-colombian-blue" />
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Welcome back, Chef!
-          </h2>
-          <p className="mt-2 text-sm text-gray-600">
-            Sign in to access your Colombian recipes
-          </p>
+    <div className="min-h-screen bg-gray-50 flex flex-col justify-center py-12 sm:px-6 lg:px-8">
+      <div className="sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="flex justify-center">
+          <ChefHat className="h-16 w-16 text-blue-800" />
         </div>
+        <h2 className="mt-6 text-center text-3xl font-bold text-gray-900">
+          {t('login.title')}
+        </h2>
+        <p className="mt-2 text-center text-gray-600">
+          {t('login.subtitle')}
+        </p>
+      </div>
 
-        {/* Form */}
-        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+      <div className="mt-8 sm:mx-auto sm:w-full sm:max-w-md">
+        <div className="bg-white py-8 px-4 shadow-lg sm:rounded-lg sm:px-10">
           {error && (
-            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center space-x-2">
-              <AlertCircle className="h-5 w-5" />
-              <span>{error}</span>
+            <div className="mb-4 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg">
+              {error}
             </div>
           )}
 
-          <div className="space-y-4">
-            {/* Email */}
+          <form onSubmit={handleSubmit} className="space-y-6">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-                Email Address
+              <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                {t('login.email')}
               </label>
-              <div className="relative">
+              <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Mail className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
                   id="email"
-                  name="email"
                   type="email"
                   required
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-colombian-blue focus:border-colombian-blue"
-                  placeholder="chef@example.com"
+                  className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="you@example.com"
                 />
               </div>
             </div>
 
-            {/* Password */}
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Password
+              <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                {t('login.password')}
               </label>
-              <div className="relative">
+              <div className="mt-1 relative">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
                   <Lock className="h-5 w-5 text-gray-400" />
                 </div>
                 <input
                   id="password"
-                  name="password"
                   type="password"
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-colombian-blue focus:border-colombian-blue"
+                  className="appearance-none block w-full pl-10 pr-3 py-3 border border-gray-300 rounded-lg placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                   placeholder="••••••••"
                 />
               </div>
             </div>
-          </div>
 
-          {/* Submit Button */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-semibold text-white bg-colombian-blue hover:bg-blue-800 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-colombian-blue disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-          >
-            {loading ? (
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-white"></div>
-            ) : (
-              'Sign In'
-            )}
-          </button>
+            <button
+              type="submit"
+              disabled={loading}
+              className="w-full flex justify-center py-3 px-4 border border-transparent rounded-lg shadow-sm text-lg font-semibold text-white bg-blue-800 hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition"
+            >
+              {loading ? t('common.loading') : t('login.button')}
+            </button>
+          </form>
 
-          {/* Register Link */}
-          <p className="text-center text-sm text-gray-600">
-            Don't have an account?{' '}
-            <Link to="/register" className="font-semibold text-colombian-blue hover:text-blue-800">
-              Sign up for free
+          <p className="mt-6 text-center text-gray-600">
+            {t('login.noAccount')}{' '}
+            <Link to="/register" className="text-blue-800 hover:text-blue-900 font-semibold">
+              {t('login.signUp')}
             </Link>
           </p>
-        </form>
+        </div>
       </div>
     </div>
   );
-}
+};
+
+export default LoginPage;

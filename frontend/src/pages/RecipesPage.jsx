@@ -1,212 +1,173 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { Search, Clock, Users, ChefHat } from 'lucide-react';
 import { recipesAPI, categoriesAPI } from '../services/api';
-import { Search, Clock, Users, ChefHat, Filter } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
-const difficultyColors = {
-  easy: 'bg-green-100 text-green-800',
-  medium: 'bg-yellow-100 text-yellow-800',
-  hard: 'bg-red-100 text-red-800',
-};
-
-const difficultyEmoji = {
-  easy: '🟢',
-  medium: '🟡',
-  hard: '🔴',
-};
-
-export default function RecipesPage() {
+const RecipesPage = () => {
   const [recipes, setRecipes] = useState([]);
   const [categories, setCategories] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchTerm, setSearchTerm] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState('');
+  const { t, language } = useLanguage();
 
   useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [recipesRes, categoriesRes] = await Promise.all([
+          recipesAPI.getAll(),
+          categoriesAPI.getAll(),
+        ]);
+        setRecipes(recipesRes.data.data?.recipes || []);
+        setCategories(categoriesRes.data.data?.categories || []);
+      } catch (error) {
+        console.error('Error fetching data:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchData();
-  }, [selectedCategory, selectedDifficulty]);
+  }, []);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const params = {};
-      if (selectedCategory) params.category = selectedCategory;
-      if (selectedDifficulty) params.difficulty = selectedDifficulty;
+  const filteredRecipes = recipes.filter((recipe) => {
+    const matchesSearch = recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      recipe.description?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = !selectedCategory || recipe.category_id === parseInt(selectedCategory);
+    const matchesDifficulty = !selectedDifficulty || recipe.difficulty === selectedDifficulty;
+    return matchesSearch && matchesCategory && matchesDifficulty;
+  });
 
-      const [recipesRes, categoriesRes] = await Promise.all([
-        recipesAPI.getAll(params),
-        categoriesAPI.getAll(),
-      ]);
-
-      setRecipes(recipesRes.data.data.recipes || []);
-      setCategories(categoriesRes.data.data.categories || []);
-    } catch (error) {
-      console.error('Error fetching data:', error);
-    } finally {
-      setLoading(false);
-    }
+  const getDifficultyLabel = (difficulty) => {
+    return t(`recipes.${difficulty}`);
   };
 
-  const handleSearch = async (e) => {
-    e.preventDefault();
-    if (!searchQuery.trim()) {
-      fetchData();
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const response = await recipesAPI.search(searchQuery);
-      setRecipes(response.data.data.recipes || []);
-    } catch (error) {
-      console.error('Error searching:', error);
-    } finally {
-      setLoading(false);
-    }
+  const getDifficultyColor = (difficulty) => {
+    const colors = {
+      easy: 'bg-green-100 text-green-800',
+      medium: 'bg-yellow-100 text-yellow-800',
+      hard: 'bg-red-100 text-red-800',
+    };
+    return colors[difficulty] || 'bg-gray-100 text-gray-800';
   };
 
-  const clearFilters = () => {
-    setSearchQuery('');
-    setSelectedCategory('');
-    setSelectedDifficulty('');
-  };
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800"></div>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">Colombian Recipes</h1>
-        <p className="text-gray-600">Discover authentic dishes from Colombia 🇨🇴</p>
-      </div>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="text-center mb-8">
+          <h1 className="text-3xl md:text-4xl font-bold text-gray-900 mb-2">
+            {t('recipes.title')}
+          </h1>
+          <p className="text-gray-600">{t('recipes.subtitle')}</p>
+        </div>
 
-      {/* Search and Filters */}
-      <div className="bg-white rounded-xl shadow-md p-6 mb-8">
-        <div className="flex flex-col md:flex-row gap-4">
-          {/* Search */}
-          <form onSubmit={handleSearch} className="flex-1">
+        {/* Filters */}
+        <div className="bg-white rounded-xl shadow-md p-4 mb-8">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {/* Search */}
             <div className="relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
               <input
                 type="text"
-                placeholder="Search recipes or ingredients..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-colombian-blue focus:border-colombian-blue"
+                placeholder={t('recipes.searchPlaceholder')}
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
               />
             </div>
-          </form>
 
-          {/* Category Filter */}
-          <div className="relative">
-            <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+            {/* Category Filter */}
             <select
               value={selectedCategory}
               onChange={(e) => setSelectedCategory(e.target.value)}
-              className="pl-10 pr-8 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-colombian-blue focus:border-colombian-blue appearance-none bg-white"
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
-              <option value="">All Categories</option>
-              {categories.map((cat) => (
-                <option key={cat.id} value={cat.id}>
-                  {cat.name}
+              <option value="">{t('recipes.allCategories')}</option>
+              {categories.map((category) => (
+                <option key={category.id} value={category.id}>
+                  {category.name}
                 </option>
               ))}
             </select>
+
+            {/* Difficulty Filter */}
+            <select
+              value={selectedDifficulty}
+              onChange={(e) => setSelectedDifficulty(e.target.value)}
+              className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="">{t('recipes.allDifficulties')}</option>
+              <option value="easy">{t('recipes.easy')}</option>
+              <option value="medium">{t('recipes.medium')}</option>
+              <option value="hard">{t('recipes.hard')}</option>
+            </select>
           </div>
+        </div>
 
-          {/* Difficulty Filter */}
-          <select
-            value={selectedDifficulty}
-            onChange={(e) => setSelectedDifficulty(e.target.value)}
-            className="px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-colombian-blue focus:border-colombian-blue appearance-none bg-white"
-          >
-            <option value="">All Difficulties</option>
-            <option value="easy">🟢 Easy</option>
-            <option value="medium">🟡 Medium</option>
-            <option value="hard">🔴 Hard</option>
-          </select>
-
-          {/* Clear Filters */}
-          {(searchQuery || selectedCategory || selectedDifficulty) && (
+        {/* Recipe Grid */}
+        {filteredRecipes.length === 0 ? (
+          <div className="text-center py-12">
+            <ChefHat className="h-16 w-16 mx-auto text-gray-400 mb-4" />
+            <p className="text-gray-600 text-lg">{t('recipes.noRecipes')}</p>
             <button
-              onClick={clearFilters}
-              className="px-4 py-3 text-gray-600 hover:text-gray-900 font-medium"
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('');
+                setSelectedDifficulty('');
+              }}
+              className="mt-4 text-blue-800 hover:text-blue-900 font-semibold"
             >
-              Clear
+              {t('recipes.clearFilters')}
             </button>
-          )}
-        </div>
-      </div>
-
-      {/* Recipe Grid */}
-      {loading ? (
-        <div className="flex justify-center py-12">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-colombian-blue"></div>
-        </div>
-      ) : recipes.length === 0 ? (
-        <div className="text-center py-12">
-          <ChefHat className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-          <h3 className="text-lg font-medium text-gray-900 mb-2">No recipes found</h3>
-          <p className="text-gray-500">Try adjusting your search or filters</p>
-        </div>
-      ) : (
-        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recipes.map((recipe) => (
-            <Link
-              key={recipe.id}
-              to={`/recipes/${recipe.id}`}
-              className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-xl transition-shadow group"
-            >
-              {/* Recipe Image Placeholder */}
-              <div className="h-48 bg-gradient-to-br from-colombian-yellow to-orange-400 flex items-center justify-center relative overflow-hidden">
-                <span className="text-6xl group-hover:scale-110 transition-transform">
-                  {recipe.category === 'breakfast' ? '🍳' :
-                   recipe.category === 'lunch' ? '🍲' :
-                   recipe.category === 'dinner' ? '🍖' :
-                   recipe.category === 'dessert' ? '🍮' :
-                   recipe.category === 'snack' ? '🫓' : '🍽️'}
-                </span>
-                <div className="absolute top-3 right-3">
-                  <span className={`text-xs px-2 py-1 rounded-full font-medium ${difficultyColors[recipe.difficulty]}`}>
-                    {difficultyEmoji[recipe.difficulty]} {recipe.difficulty}
-                  </span>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filteredRecipes.map((recipe) => (
+              <Link
+                key={recipe.id}
+                to={`/recipes/${recipe.id}`}
+                className="bg-white rounded-xl shadow-md overflow-hidden hover:shadow-lg transition transform hover:-translate-y-1"
+              >
+                <div className="h-48 bg-gradient-to-br from-yellow-400 to-red-500 flex items-center justify-center">
+                  <ChefHat className="h-20 w-20 text-white opacity-80" />
                 </div>
-              </div>
-
-              {/* Recipe Info */}
-              <div className="p-5">
-                <h3 className="font-bold text-lg mb-2 text-gray-900 group-hover:text-colombian-blue transition-colors">
-                  {recipe.name}
-                </h3>
-                {recipe.name_es && (
-                  <p className="text-sm text-gray-500 italic mb-3">{recipe.name_es}</p>
-                )}
-                
-                <div className="flex items-center space-x-4 text-sm text-gray-600">
-                  {recipe.prep_time && (
-                    <div className="flex items-center space-x-1">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-2">
+                    <h3 className="text-xl font-bold text-gray-900">{recipe.name}</h3>
+                    <span className={`px-2 py-1 rounded-full text-xs font-semibold ${getDifficultyColor(recipe.difficulty)}`}>
+                      {getDifficultyLabel(recipe.difficulty)}
+                    </span>
+                  </div>
+                  <p className="text-gray-600 mb-4 line-clamp-2">{recipe.description}</p>
+                  <div className="flex items-center justify-between text-sm text-gray-500">
+                    <div className="flex items-center gap-1">
                       <Clock className="h-4 w-4" />
-                      <span>{recipe.prep_time + (recipe.cook_time || 0)} min</span>
+                      <span>{recipe.prep_time + recipe.cook_time} {t('recipes.minutes')}</span>
                     </div>
-                  )}
-                  {recipe.servings && (
-                    <div className="flex items-center space-x-1">
+                    <div className="flex items-center gap-1">
                       <Users className="h-4 w-4" />
-                      <span>{recipe.servings} servings</span>
+                      <span>{recipe.servings} {t('recipes.servings')}</span>
                     </div>
-                  )}
+                  </div>
                 </div>
-
-                {recipe.region && (
-                  <p className="mt-3 text-xs text-gray-500">
-                    📍 {recipe.region}
-                  </p>
-                )}
-              </div>
-            </Link>
-          ))}
-        </div>
-      )}
+              </Link>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
-}
+};
+
+export default RecipesPage;

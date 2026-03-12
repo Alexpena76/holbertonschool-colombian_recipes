@@ -1,226 +1,186 @@
-import { useState, useEffect, useRef } from 'react';
-import { useParams } from 'react-router-dom';
-import { assistantAPI, recipesAPI } from '../services/api';
-import { Send, ChefHat, User, Loader2, Sparkles } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Link } from 'react-router-dom';
+import { Send, Bot, User, Lock } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
+import { useLanguage } from '../context/LanguageContext';
+import { assistantAPI } from '../services/api';
 
-export default function ChatPage() {
-  const { recipeId } = useParams();
-  const [recipe, setRecipe] = useState(null);
+const ChatPage = () => {
+  const { user } = useAuth();
+  const { t, language } = useLanguage();
   const [messages, setMessages] = useState([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [conversationId, setConversationId] = useState(null);
-  const [provider, setProvider] = useState(null);
   const messagesEndRef = useRef(null);
-
-  useEffect(() => {
-    if (recipeId) {
-      fetchRecipe();
-    } else {
-      // Add welcome message for general chat
-      setMessages([{
-        role: 'assistant',
-        content: '¡Hola! 👋 I\'m your AI Colombian cooking assistant. Ask me anything about Colombian recipes, cooking techniques, ingredient substitutions, or traditional dishes!\n\nYou can also ask about a specific recipe by going to the Recipes page and clicking "Ask AI Chef".',
-      }]);
-    }
-  }, [recipeId]);
-
-  useEffect(() => {
-    scrollToBottom();
-  }, [messages]);
-
-  const fetchRecipe = async () => {
-    try {
-      const response = await recipesAPI.getById(recipeId);
-      const recipeData = response.data.data;
-      setRecipe(recipeData);
-      
-      // Add welcome message with recipe context
-      setMessages([{
-        role: 'assistant',
-        content: `¡Hola! 👋 I see you're cooking **${recipeData.name}**${recipeData.name_es ? ` (${recipeData.name_es})` : ''}!\n\nI'm here to help you prepare this delicious Colombian dish. Ask me anything - cooking tips, ingredient substitutions, timing questions, or troubleshooting. ¡Buena suerte en la cocina! 🇨🇴`,
-      }]);
-    } catch (error) {
-      console.error('Error fetching recipe:', error);
-    }
-  };
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
+  useEffect(() => {
+    scrollToBottom();
+  }, [messages]);
+
+  // Initialize with welcome message
+  useEffect(() => {
+    if (user && messages.length === 0) {
+      setMessages([
+        {
+          role: 'assistant',
+          content: t('chat.welcome'),
+        },
+      ]);
+    }
+  }, [user, t]);
+
+  // Update welcome message when language changes
+  useEffect(() => {
+    if (user && messages.length === 1 && messages[0].role === 'assistant') {
+      setMessages([
+        {
+          role: 'assistant',
+          content: t('chat.welcome'),
+        },
+      ]);
+    }
+  }, [language]);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!input.trim() || loading) return;
 
-    const userMessage = input.trim();
+    const userMessage = { role: 'user', content: input };
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
-    
-    // Add user message to chat
-    setMessages(prev => [...prev, { role: 'user', content: userMessage }]);
     setLoading(true);
 
     try {
-      const response = await assistantAPI.ask(
-        userMessage,
-        recipeId || null,
-        conversationId,
-        'en'
-      );
-
-      const data = response.data.data;
-      
-      // Save conversation ID for continuity
-      if (data.conversation_id) {
-        setConversationId(data.conversation_id);
-      }
-      
-      // Track which AI provider responded
-      setProvider(data.provider);
-
-      // Add AI response to chat
-      setMessages(prev => [...prev, {
+      const response = await assistantAPI.ask(input, null, null, language);
+      const assistantMessage = {
         role: 'assistant',
-        content: data.response,
-        provider: data.provider,
-      }]);
-
+        content: response.data.data?.response || t('chat.error'),
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
     } catch (error) {
-      console.error('Error getting AI response:', error);
-      setMessages(prev => [...prev, {
-        role: 'assistant',
-        content: 'Lo siento, I had trouble processing that. Please try again! 🙏',
-        isError: true,
-      }]);
+      console.error('Error:', error);
+      setMessages((prev) => [
+        ...prev,
+        { role: 'assistant', content: t('chat.error') },
+      ]);
     } finally {
       setLoading(false);
     }
   };
 
-  const suggestedQuestions = recipeId ? [
-    "What can I substitute for this ingredient?",
-    "How do I know when it's done?",
-    "Can I make this ahead of time?",
-    "What should I serve with this?",
-  ] : [
-    "What's a good Colombian breakfast?",
-    "How do I make arepas?",
-    "What is bandeja paisa?",
-    "Tell me about Colombian coffee",
-  ];
+  if (!user) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
+        <Lock className="h-16 w-16 text-gray-400 mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('chat.title')}</h2>
+        <p className="text-gray-600 mb-6">{t('chat.loginRequired')}</p>
+        <Link
+          to="/login"
+          className="bg-blue-800 hover:bg-blue-900 text-white font-semibold px-6 py-3 rounded-lg transition"
+        >
+          {t('chat.loginButton')}
+        </Link>
+      </div>
+    );
+  }
 
   return (
-    <div className="max-w-4xl mx-auto h-[calc(100vh-4rem)] flex flex-col">
+    <div className="min-h-screen bg-gray-50 flex flex-col">
       {/* Header */}
-      <div className="bg-white border-b px-6 py-4">
-        <div className="flex items-center space-x-3">
-          <div className="bg-colombian-yellow p-2 rounded-full">
-            <ChefHat className="h-6 w-6 text-colombian-blue" />
-          </div>
-          <div>
-            <h1 className="font-bold text-lg text-gray-900">AI Colombian Chef</h1>
-            {recipe ? (
-              <p className="text-sm text-gray-500">Helping with: {recipe.name}</p>
-            ) : (
-              <p className="text-sm text-gray-500">Your cooking assistant</p>
-            )}
-          </div>
-          {provider && (
-            <span className="ml-auto text-xs bg-gray-100 text-gray-500 px-2 py-1 rounded-full">
-              Powered by {provider.replace('Provider', '')}
-            </span>
-          )}
+      <div className="bg-white shadow-sm border-b">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <h1 className="text-2xl font-bold text-gray-900">{t('chat.title')}</h1>
+          <p className="text-gray-600">{t('chat.subtitle')}</p>
         </div>
       </div>
 
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
-        {messages.map((message, index) => (
-          <div
-            key={index}
-            className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
-          >
-            <div
-              className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-                message.role === 'user'
-                  ? 'bg-colombian-blue text-white rounded-br-md'
-                  : message.isError
-                  ? 'bg-red-50 text-red-700 border border-red-200 rounded-bl-md'
-                  : 'bg-white text-gray-800 shadow-md rounded-bl-md'
-              }`}
-            >
-              <div className="flex items-start space-x-2">
-                {message.role === 'assistant' && (
-                  <ChefHat className={`h-5 w-5 flex-shrink-0 mt-0.5 ${message.isError ? 'text-red-500' : 'text-colombian-yellow'}`} />
-                )}
-                <div className="flex-1">
-                  <p className="whitespace-pre-wrap">{message.content}</p>
-                </div>
-                {message.role === 'user' && (
-                  <User className="h-5 w-5 flex-shrink-0 mt-0.5 text-blue-200" />
-                )}
-              </div>
-            </div>
-          </div>
-        ))}
-
-        {/* Loading indicator */}
-        {loading && (
-          <div className="flex justify-start">
-            <div className="bg-white rounded-2xl rounded-bl-md px-4 py-3 shadow-md">
-              <div className="flex items-center space-x-2">
-                <ChefHat className="h-5 w-5 text-colombian-yellow" />
-                <Loader2 className="h-5 w-5 animate-spin text-colombian-blue" />
-                <span className="text-gray-500 text-sm">Cooking up a response...</span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div ref={messagesEndRef} />
-      </div>
-
-      {/* Suggested Questions */}
-      {messages.length <= 1 && (
-        <div className="bg-white border-t px-6 py-3">
-          <p className="text-xs text-gray-500 mb-2 flex items-center">
-            <Sparkles className="h-3 w-3 mr-1" />
-            Try asking:
-          </p>
-          <div className="flex flex-wrap gap-2">
-            {suggestedQuestions.map((question, index) => (
-              <button
+      {/* Chat Messages */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-4xl mx-auto px-4 py-6">
+          <div className="space-y-4">
+            {messages.map((message, index) => (
+              <div
                 key={index}
-                onClick={() => setInput(question)}
-                className="text-sm bg-gray-100 hover:bg-colombian-yellow hover:text-colombian-blue px-3 py-1.5 rounded-full transition-colors"
+                className={`flex ${message.role === 'user' ? 'justify-end' : 'justify-start'}`}
               >
-                {question}
-              </button>
+                <div
+                  className={`flex items-start space-x-2 max-w-3xl ${
+                    message.role === 'user' ? 'flex-row-reverse space-x-reverse' : ''
+                  }`}
+                >
+                  <div
+                    className={`flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
+                      message.role === 'user' ? 'bg-blue-800' : 'bg-yellow-500'
+                    }`}
+                  >
+                    {message.role === 'user' ? (
+                      <User className="h-5 w-5 text-white" />
+                    ) : (
+                      <Bot className="h-5 w-5 text-blue-900" />
+                    )}
+                  </div>
+                  <div
+                    className={`px-4 py-3 rounded-2xl ${
+                      message.role === 'user'
+                        ? 'bg-blue-800 text-white rounded-br-md'
+                        : 'bg-white shadow-md rounded-bl-md'
+                    }`}
+                  >
+                    <p className="whitespace-pre-wrap">{message.content}</p>
+                  </div>
+                </div>
+              </div>
             ))}
+            {loading && (
+              <div className="flex justify-start">
+                <div className="flex items-start space-x-2">
+                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-yellow-500 flex items-center justify-center">
+                    <Bot className="h-5 w-5 text-blue-900" />
+                  </div>
+                  <div className="bg-white shadow-md px-4 py-3 rounded-2xl rounded-bl-md">
+                    <div className="flex space-x-1">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-100"></div>
+                      <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce delay-200"></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+            <div ref={messagesEndRef} />
           </div>
         </div>
-      )}
+      </div>
 
-      {/* Input */}
-      <form onSubmit={handleSubmit} className="bg-white border-t px-6 py-4">
-        <div className="flex space-x-3">
-          <input
-            type="text"
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Ask me anything about Colombian cooking..."
-            className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-colombian-blue focus:border-colombian-blue"
-            disabled={loading}
-          />
-          <button
-            type="submit"
-            disabled={loading || !input.trim()}
-            className="bg-colombian-blue text-white px-6 py-3 rounded-xl font-semibold hover:bg-blue-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
-          >
-            <Send className="h-5 w-5" />
-          </button>
+      {/* Input Form */}
+      <div className="bg-white border-t">
+        <div className="max-w-4xl mx-auto px-4 py-4">
+          <form onSubmit={handleSubmit} className="flex space-x-4">
+            <input
+              type="text"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder={t('chat.placeholder')}
+              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
+              disabled={loading}
+            />
+            <button
+              type="submit"
+              disabled={loading || !input.trim()}
+              className="bg-blue-800 hover:bg-blue-900 text-white px-6 py-3 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            >
+              <Send className="h-5 w-5" />
+              <span className="hidden sm:inline">{t('chat.send')}</span>
+            </button>
+          </form>
         </div>
-      </form>
+      </div>
     </div>
   );
-}
+};
+
+export default ChatPage;

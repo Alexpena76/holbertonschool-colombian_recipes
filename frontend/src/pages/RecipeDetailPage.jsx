@@ -1,236 +1,186 @@
 import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
+import { ArrowLeft, Clock, Users, ChefHat, Minus, Plus } from 'lucide-react';
 import { recipesAPI } from '../services/api';
-import { Clock, Users, ChefHat, MessageCircle, ArrowLeft, Minus, Plus } from 'lucide-react';
+import { useLanguage } from '../context/LanguageContext';
 
-const difficultyColors = {
-  easy: 'bg-green-100 text-green-800 border-green-200',
-  medium: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-  hard: 'bg-red-100 text-red-800 border-red-200',
-};
-
-export default function RecipeDetailPage() {
+const RecipeDetailPage = () => {
   const { id } = useParams();
   const [recipe, setRecipe] = useState(null);
   const [loading, setLoading] = useState(true);
   const [servings, setServings] = useState(4);
   const [originalServings, setOriginalServings] = useState(4);
+  const { t } = useLanguage();
 
   useEffect(() => {
+    const fetchRecipe = async () => {
+      try {
+        const response = await recipesAPI.getById(id);
+        const recipeData = response.data.data?.recipe;
+        setRecipe(recipeData);
+        setServings(recipeData?.servings || 4);
+        setOriginalServings(recipeData?.servings || 4);
+      } catch (error) {
+        console.error('Error fetching recipe:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
     fetchRecipe();
   }, [id]);
 
-  const fetchRecipe = async () => {
-    try {
-      setLoading(true);
-      const response = await recipesAPI.getById(id);
-      const recipeData = response.data.data;
-      setRecipe(recipeData);
-      setServings(recipeData.servings || 4);
-      setOriginalServings(recipeData.servings || 4);
-    } catch (error) {
-      console.error('Error fetching recipe:', error);
-    } finally {
-      setLoading(false);
-    }
+  const adjustQuantity = (quantity) => {
+    if (!quantity) return quantity;
+    const adjusted = (quantity * servings) / originalServings;
+    return adjusted % 1 === 0 ? adjusted : adjusted.toFixed(1);
   };
 
-  const adjustServings = (delta) => {
-    const newServings = Math.max(1, servings + delta);
-    setServings(newServings);
-  };
-
-  const scaleAmount = (amount) => {
-    if (!amount) return amount;
-    const scaled = (amount * servings) / originalServings;
-    return Number.isInteger(scaled) ? scaled : scaled.toFixed(1);
+  const getDifficultyLabel = (difficulty) => {
+    const labels = {
+      easy: t('recipes.easy'),
+      medium: t('recipes.medium'),
+      hard: t('recipes.hard'),
+    };
+    return labels[difficulty] || difficulty;
   };
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-colombian-blue"></div>
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-800"></div>
       </div>
     );
   }
 
   if (!recipe) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <ChefHat className="mx-auto h-16 w-16 text-gray-300 mb-4" />
-          <h2 className="text-xl font-semibold text-gray-900">Recipe not found</h2>
-          <Link to="/recipes" className="text-colombian-blue hover:underline mt-2 inline-block">
-            Back to recipes
-          </Link>
-        </div>
+      <div className="min-h-screen flex flex-col items-center justify-center">
+        <ChefHat className="h-16 w-16 text-gray-400 mb-4" />
+        <h2 className="text-2xl font-bold text-gray-900 mb-2">{t('recipeDetail.notFound')}</h2>
+        <p className="text-gray-600 mb-4">{t('recipeDetail.notFoundMessage')}</p>
+        <Link to="/recipes" className="text-blue-800 hover:text-blue-900 font-semibold">
+          {t('recipeDetail.backToRecipes')}
+        </Link>
       </div>
     );
   }
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      {/* Back Button */}
-      <Link
-        to="/recipes"
-        className="inline-flex items-center text-gray-600 hover:text-colombian-blue mb-6"
-      >
-        <ArrowLeft className="h-5 w-5 mr-1" />
-        Back to recipes
-      </Link>
+    <div className="min-h-screen bg-gray-50 py-8">
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Back Button */}
+        <Link
+          to="/recipes"
+          className="inline-flex items-center text-blue-800 hover:text-blue-900 mb-6"
+        >
+          <ArrowLeft className="h-5 w-5 mr-1" />
+          {t('recipeDetail.backToRecipes')}
+        </Link>
 
-      {/* Recipe Header */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
-        {/* Hero Image Placeholder */}
-        <div className="h-64 bg-gradient-to-br from-colombian-yellow via-orange-400 to-colombian-red flex items-center justify-center">
-          <span className="text-8xl">
-            {recipe.category === 'breakfast' ? '🍳' :
-             recipe.category === 'lunch' ? '🍲' :
-             recipe.category === 'dinner' ? '🍖' :
-             recipe.category === 'dessert' ? '🍮' :
-             recipe.category === 'snack' ? '🫓' : '🍽️'}
-          </span>
+        {/* Recipe Header */}
+        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
+          <div className="h-64 bg-gradient-to-br from-yellow-400 to-red-500 flex items-center justify-center">
+            <ChefHat className="h-32 w-32 text-white opacity-80" />
+          </div>
+          <div className="p-6">
+            <h1 className="text-3xl font-bold text-gray-900 mb-2">{recipe.name}</h1>
+            <p className="text-gray-600 mb-4">{recipe.description}</p>
+            
+            {/* Recipe Meta */}
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 py-4 border-t border-b border-gray-200">
+              <div className="text-center">
+                <Clock className="h-6 w-6 mx-auto text-blue-800 mb-1" />
+                <p className="text-sm text-gray-500">{t('recipeDetail.prepTime')}</p>
+                <p className="font-semibold">{recipe.prep_time} {t('recipeDetail.minutes')}</p>
+              </div>
+              <div className="text-center">
+                <Clock className="h-6 w-6 mx-auto text-blue-800 mb-1" />
+                <p className="text-sm text-gray-500">{t('recipeDetail.cookTime')}</p>
+                <p className="font-semibold">{recipe.cook_time} {t('recipeDetail.minutes')}</p>
+              </div>
+              <div className="text-center">
+                <Users className="h-6 w-6 mx-auto text-blue-800 mb-1" />
+                <p className="text-sm text-gray-500">{t('recipeDetail.servings')}</p>
+                <p className="font-semibold">{recipe.servings}</p>
+              </div>
+              <div className="text-center">
+                <ChefHat className="h-6 w-6 mx-auto text-blue-800 mb-1" />
+                <p className="text-sm text-gray-500">{t('recipeDetail.difficulty')}</p>
+                <p className="font-semibold capitalize">{getDifficultyLabel(recipe.difficulty)}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
-        <div className="p-6">
-          <div className="flex flex-wrap items-start justify-between gap-4">
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900 mb-1">{recipe.name}</h1>
-              {recipe.name_es && (
-                <p className="text-lg text-gray-500 italic">{recipe.name_es}</p>
-              )}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Ingredients */}
+          <div className="md:col-span-1">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">{t('recipeDetail.ingredients')}</h2>
+              
+              {/* Servings Adjuster */}
+              <div className="flex items-center justify-between bg-gray-50 rounded-lg p-3 mb-4">
+                <span className="text-sm font-medium text-gray-700">{t('recipeDetail.servings')}</span>
+                <div className="flex items-center gap-3">
+                  <button
+                    onClick={() => setServings(Math.max(1, servings - 1))}
+                    className="p-1 rounded-full bg-blue-100 text-blue-800 hover:bg-blue-200"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <span className="font-bold text-lg w-8 text-center">{servings}</span>
+                  <button
+                    onClick={() => setServings(servings + 1)}
+                    className="p-1 rounded-full bg-blue-100 text-blue-800 hover:bg-blue-200"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+
+              <ul className="space-y-2">
+                {recipe.ingredients?.map((ingredient, index) => (
+                  <li key={index} className="flex items-start">
+                    <span className="w-2 h-2 bg-yellow-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
+                    <span>
+                      <strong>{adjustQuantity(ingredient.amount)} {ingredient.unit}</strong>{' '}
+                      {ingredient.name}
+                    </span>
+                  </li>
+                ))}
+              </ul>
             </div>
-            <span className={`px-4 py-2 rounded-full font-medium border ${difficultyColors[recipe.difficulty]}`}>
-              {recipe.difficulty === 'easy' ? '🟢' : recipe.difficulty === 'medium' ? '🟡' : '🔴'} {recipe.difficulty}
-            </span>
           </div>
 
-          {recipe.description && (
-            <p className="mt-4 text-gray-600">{recipe.description}</p>
-          )}
+          {/* Instructions */}
+          <div className="md:col-span-2">
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h2 className="text-xl font-bold text-gray-900 mb-4">{t('recipeDetail.instructions')}</h2>
+              <ol className="space-y-4">
+                {recipe.instructions?.map((instruction, index) => (
+                  <li key={index} className="flex">
+                    <span className="flex-shrink-0 w-8 h-8 bg-blue-800 text-white rounded-full flex items-center justify-center font-bold mr-4">
+                      {instruction.step_number}
+                    </span>
+                    <p className="text-gray-700 pt-1">{instruction.description}</p>
+                  </li>
+                ))}
+              </ol>
+            </div>
 
-          {/* Meta Info */}
-          <div className="flex flex-wrap gap-6 mt-6 pt-6 border-t border-gray-200">
-            {recipe.prep_time && (
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Clock className="h-5 w-5 text-colombian-blue" />
-                <div>
-                  <p className="text-sm text-gray-500">Prep Time</p>
-                  <p className="font-semibold">{recipe.prep_time} min</p>
-                </div>
-              </div>
-            )}
-            {recipe.cook_time && (
-              <div className="flex items-center space-x-2 text-gray-600">
-                <Clock className="h-5 w-5 text-colombian-red" />
-                <div>
-                  <p className="text-sm text-gray-500">Cook Time</p>
-                  <p className="font-semibold">{recipe.cook_time} min</p>
-                </div>
-              </div>
-            )}
-            {recipe.region && (
-              <div className="flex items-center space-x-2 text-gray-600">
-                <span className="text-xl">📍</span>
-                <div>
-                  <p className="text-sm text-gray-500">Region</p>
-                  <p className="font-semibold">{recipe.region}</p>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* AI Assistant Button */}
-          <div className="mt-6">
+            {/* AI Assistant Link */}
             <Link
-              to={`/chat/${recipe.id}`}
-              className="inline-flex items-center space-x-2 bg-colombian-blue text-white px-6 py-3 rounded-lg font-semibold hover:bg-blue-800 transition-colors"
+              to="/chat"
+              className="mt-6 block w-full text-center bg-yellow-500 hover:bg-yellow-600 text-blue-900 font-bold py-3 rounded-lg transition"
             >
-              <MessageCircle className="h-5 w-5" />
-              <span>Ask AI Chef for Help</span>
+              {t('recipeDetail.askAI')}
             </Link>
           </div>
         </div>
       </div>
-
-      {/* Ingredients */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-        <div className="flex items-center justify-between mb-6">
-          <h2 className="text-2xl font-bold text-gray-900">Ingredients</h2>
-          
-          {/* Servings Adjuster */}
-          <div className="flex items-center space-x-3">
-            <Users className="h-5 w-5 text-gray-500" />
-            <button
-              onClick={() => adjustServings(-1)}
-              className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-            >
-              <Minus className="h-4 w-4" />
-            </button>
-            <span className="font-semibold text-lg w-8 text-center">{servings}</span>
-            <button
-              onClick={() => adjustServings(1)}
-              className="p-1 rounded-full bg-gray-100 hover:bg-gray-200 transition-colors"
-            >
-              <Plus className="h-4 w-4" />
-            </button>
-            <span className="text-gray-500">servings</span>
-          </div>
-        </div>
-
-        {recipe.ingredients && recipe.ingredients.length > 0 ? (
-          <ul className="grid md:grid-cols-2 gap-3">
-            {recipe.ingredients.map((ing, index) => (
-              <li key={index} className="flex items-center space-x-3 p-3 bg-gray-50 rounded-lg">
-                <span className="text-colombian-yellow">•</span>
-                <span>
-                  <strong className="text-colombian-blue">{scaleAmount(ing.amount)}</strong>
-                  {ing.unit && ` ${ing.unit}`} {ing.name}
-                </span>
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <p className="text-gray-500">No ingredients listed</p>
-        )}
-      </div>
-
-      {/* Steps */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-2xl font-bold text-gray-900 mb-6">Instructions</h2>
-
-        {recipe.steps && recipe.steps.length > 0 ? (
-          <ol className="space-y-6">
-            {recipe.steps.map((step, index) => (
-              <li key={index} className="flex space-x-4">
-                <div className="flex-shrink-0 w-10 h-10 bg-colombian-blue text-white rounded-full flex items-center justify-center font-bold">
-                  {step.step_number || index + 1}
-                </div>
-                <div className="flex-1 pt-2">
-                  <p className="text-gray-700 leading-relaxed">{step.instruction}</p>
-                  {step.instruction_es && (
-                    <p className="text-gray-500 italic mt-2 text-sm">{step.instruction_es}</p>
-                  )}
-                </div>
-              </li>
-            ))}
-          </ol>
-        ) : (
-          <p className="text-gray-500">No instructions listed</p>
-        )}
-      </div>
-
-      {/* Bottom CTA */}
-      <div className="mt-8 text-center">
-        <p className="text-gray-600 mb-4">Need help while cooking?</p>
-        <Link
-          to={`/chat/${recipe.id}`}
-          className="inline-flex items-center space-x-2 bg-colombian-yellow text-colombian-blue px-8 py-4 rounded-lg font-bold text-lg hover:bg-yellow-400 transition-colors"
-        >
-          <MessageCircle className="h-6 w-6" />
-          <span>Chat with AI Chef</span>
-        </Link>
-      </div>
     </div>
   );
-}
+};
+
+export default RecipeDetailPage;
