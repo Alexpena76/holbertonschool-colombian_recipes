@@ -16,7 +16,7 @@ const RecipeDetailPage = () => {
     const fetchRecipe = async () => {
       try {
         const response = await recipesAPI.getById(id);
-        const recipeData = response.data.data?.recipe;
+        const recipeData = response.data.data;
         setRecipe(recipeData);
         setServings(recipeData?.servings || 4);
         setOriginalServings(recipeData?.servings || 4);
