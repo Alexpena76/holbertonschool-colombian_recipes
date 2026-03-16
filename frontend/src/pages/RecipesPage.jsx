@@ -35,7 +35,7 @@ const RecipesPage = () => {
   const filteredRecipes = recipes.filter((recipe) => {
     const matchesSearch = recipe.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       recipe.description?.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesCategory = !selectedCategory || recipe.category_id === parseInt(selectedCategory);
+    const matchesCategory = !selectedCategory || recipe.category === selectedCategory;
     const matchesDifficulty = !selectedDifficulty || recipe.difficulty === selectedDifficulty;
     return matchesSearch && matchesCategory && matchesDifficulty;
   });

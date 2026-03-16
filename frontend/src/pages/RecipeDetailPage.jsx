@@ -153,7 +153,7 @@ const RecipeDetailPage = () => {
                     <span className="w-2 h-2 bg-yellow-500 rounded-full mt-2 mr-3 flex-shrink-0"></span>
                     <span>
                       <strong>{adjustQuantity(ingredient.amount)} {ingredient.unit}</strong>{' '}
-                      {ingredient.name}
+                      {language === 'es' ? ingredient.name_es || ingredient.name : ingredient.name}
                     </span>
                   </li>
                 ))}
